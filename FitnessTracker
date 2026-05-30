@@ -1,0 +1,373 @@
+import json
+from datetime import datetime, timedelta
+import os
+
+# File Handling
+FILE_NAME = "fitness_data.json"
+
+def load_data():
+    if os.path.exists(FILE_NAME):
+        with open(FILE_NAME, "r") as f:
+            return json.load(f)
+    return []
+
+def save_data():
+    with open(FILE_NAME, "w") as f:
+        json.dump(profiles, f, indent=4)
+
+# Global varianle
+profiles = load_data()
+current_profile = None
+
+activity_multipliers = {
+    "Running": 10,
+    "Cycling": 8,
+    "Swimming": 9,
+    "Walking": 5,
+    "Gym": 7,
+    "Other": 6 # Default
+}
+
+# Helpers
+def calculate_bmi(weight, height):
+    height_m = height / 100                      
+    return weight / (height_m ** 2)
+
+def calculate_calories(activity, intensity, duration):
+    multiplier = activity_multipliers.get(activity, 6)
+    return intensity * duration * multiplier
+
+def create_profile():
+    name = input("Enter name: ")
+    age = int(input("Enter age: "))
+    height = float(input("Enter height (cm): "))
+    weight = float(input("Enter weight (kg): "))
+
+    profile = {
+        "name": name,
+        "age": age,
+        "height": height,
+        "weight": weight,
+        "workouts": [],
+        "goals": {
+            "weekly_frequency": 0,
+            "weekly_calories": 0
+        }
+    }
+
+    profiles.append(profile)
+    save_data()
+    print("Profile created!")
+
+def delete_profile():
+    global current_profile
+
+    if not profiles:
+        print("No profiles to delete.")
+        return
+
+    print("\n--- DELETE PROFILE ---")
+    for i, p in enumerate(profiles):
+        print(f"{i+1}. {p['name']}")
+
+    choice = input("Choose profile to delete: ")
+
+    # validates input
+    if not choice.isdigit():
+        print("Enter a valid number.")
+        return
+
+    choice = int(choice)
+
+    if 1 <= choice <= len(profiles):
+        profile_to_delete = profiles[choice - 1]
+
+        confirm = input(f"Delete '{profile_to_delete['name']}'? (y/n): ")
+
+        if confirm.lower() == "y":
+            profiles.pop(choice - 1)
+            save_data()
+
+            if current_profile == profile_to_delete:
+                current_profile = None
+
+            print("Profile deleted.")
+        else:
+            print("Deletion cancelled.")
+    else:
+        print("Invalid selection.")
+
+def select_profile():
+    global current_profile
+
+    if not profiles:
+        print("No profiles available.")
+        return
+
+    while True:
+        print("\n--- Select Profile ---")
+        for i, p in enumerate(profiles):
+            print(f"{i+1}. {p['name']}")
+
+        choice = input("Choose profile number: ")
+
+        if not choice.isdigit():
+            print("Enter a number only.")
+            continue
+
+        choice = int(choice)
+
+        if 1 <= choice <= len(profiles):
+            current_profile = profiles[choice - 1]
+            print(f"Loaded: {current_profile['name']}")
+            break
+        else:
+            print("Invalid number.")
+
+def profile_menu():
+    while True:
+        print("\n=== PROFILE MENU ===")
+        print("1. Select Profile")
+        print("2. Create Profile")
+        print("3. Delete Profile")
+        print("4. Exit")
+
+        choice = input("Choice: ")
+
+        if choice == "1":
+            select_profile()
+            if current_profile:
+                break
+        elif choice == "2":
+            create_profile()
+        elif choice == "3":
+            delete_profile()
+        elif choice == "4":
+            exit()
+        else:
+            print("Invalid input!")
+
+# Main menu functions
+
+def view_profile():
+    p = current_profile
+
+    print("\n--- PROFILE ---")
+    print(f"Name: {p['name']}")
+    print(f"Age: {p['age']}")
+    print(f"Height: {p['height']}")
+    print(f"Weight: {p['weight']}")
+
+    bmi = calculate_bmi(p["weight"], p["height"])
+    print(f"BMI: {round(bmi, 2)}")
+
+def log_workout():
+    p = current_profile
+
+    print("\nWorkout Types:")
+    print("1. Running")
+    print("2. Cycling")
+    print("3. Swimming")
+    print("4. Walking")
+    print("5. Gym")
+    print("6. Other")
+
+    types = ["Running", "Cycling", "Swimming", "Walking", "Gym", "Other"]
+
+    try:
+        choice = int(input("Choose type: "))
+        if 1 <= choice <= len(types):
+            workout_type = types[choice - 1]
+        else:
+            print("Invalid type.")
+            return
+
+        while True:
+            try:
+                intensity = int(input("Intensity (1-5): "))
+                if 1 <= intensity <= 5:
+                    break
+                else:
+                    print("Enter 1–5 only.")
+            except ValueError:
+                print("Invalid input.")
+
+        duration = int(input("Duration (minutes): "))
+
+        date = datetime.now().strftime("%Y-%m-%d")
+
+        # Calculate BMI
+        calories = calculate_calories(workout_type, intensity, duration)
+
+        print("\n--- CONFIRM WORKOUT ---")
+        print(f"Date: {date}")
+        print(f"Type: {workout_type}")
+        print(f"Intensity: {intensity}")
+        print(f"Duration: {duration} mins")
+        print(f"Calories: {calories}")
+
+        confirm = input("\nConfirm? (y/n): ")
+
+        if confirm.lower() == "y":
+            workout = {
+                "type": workout_type,
+                "intensity": intensity,
+                "duration": duration,
+                "date": date
+            }
+
+            p["workouts"].append(workout)
+            save_data()
+
+            print("Workout logged!")
+        else:
+            print("Workout cancelled.")
+
+    except (ValueError, IndexError):
+        print("Invalid input. Try again.")
+
+def view_workouts():
+    p = current_profile
+
+    if not p["workouts"]:
+        print("No workouts yet.")
+        return
+
+    print("\n--- WORKOUT HISTORY ---")
+    
+    for w in sorted(p["workouts"], key=lambda x: x["date"], reverse=True):
+        calories = calculate_calories(w["type"], w["intensity"], w["duration"])
+
+        print("\n------------------------")
+        print(f"Date: {w['date']}")
+        print(f"Type: {w['type']}")
+        print(f"Intensity: {w['intensity']}")
+        print(f"Duration: {w['duration']} minutes")
+        print(f"Calories Burned: {calories}")
+
+# Submenu for goals and progress checking
+def goals_menu():
+    while True:
+        print("\n=== GOALS MENU ===")
+        print("1. Set Goals")
+        print("2. View Progress")
+        print("3. Back")
+
+        choice = input("Choice: ")
+
+        if choice == "1":
+            set_goals()
+        elif choice == "2":
+            view_goal_progress()
+        elif choice == "3":
+            break
+        else:
+            print("Invalid input!")
+
+def set_goals():
+    p = current_profile
+
+    # Condition for if theres existing goals or not
+    if p["goals"]["weekly_frequency"] != 0 or p["goals"]["weekly_calories"] != 0:
+        print("\nCurrent Goals:")
+        print(f"Workouts per week: {p['goals']['weekly_frequency']}")
+        print(f"Calories goal: {p['goals']['weekly_calories']}")
+
+        choice = input("Overwrite goals? (y/n): ")
+
+        if choice.lower() != "y":
+            print("Goals unchanged.")
+            return
+
+    # If No record goes straight here
+    p["goals"]["weekly_frequency"] = int(input("Workouts per week: "))
+    p["goals"]["weekly_calories"] = int(input("Calories goal: "))
+
+    save_data()
+    print("Goals updated!")
+
+def view_goal_progress():
+    p = current_profile
+
+    today = datetime.now()
+    last_week = today - timedelta(days=7)
+
+    total_calories = 0
+    workout_count = 0
+
+    for w in p["workouts"]:
+        date = datetime.strptime(w["date"], "%Y-%m-%d")
+
+        if date >= last_week:
+            workout_count += 1
+            total_calories += calculate_calories(w["type"], w["intensity"], w["duration"])
+
+    goal_workouts = p["goals"]["weekly_frequency"]
+    goal_calories = p["goals"]["weekly_calories"]
+
+    # Percentage of workout to reach goal
+    workout_percent = (workout_count / goal_workouts) * 100 if goal_workouts > 0 else 0
+    calorie_percent = (total_calories / goal_calories) * 100 if goal_calories > 0 else 0
+
+    print("\n--- GOAL PROGRESS ---")
+    if goal_workouts <= 0 and goal_calories <= 0:
+        print("Goal have not been set yet.")
+        return
+
+    print(f"\nWorkouts:")
+    print(f"  Done: {workout_count}")
+    print(f"  Goal: {goal_workouts}")
+    print(f"  Difference: {workout_count - goal_workouts}")
+    print(f"  Progress: {round(workout_percent, 1)}%") 
+
+    print(f"\nCalories:")
+    print(f"  Burned: {total_calories}")
+    print(f"  Goal: {goal_calories}")
+    print(f"  Difference: {total_calories - goal_calories}")
+    print(f"  Progress: {round(calorie_percent, 1)}%") 
+
+    # Recommendations
+    # Used emojis for more visibility
+    if workout_count >= goal_workouts:
+        print("✅ Workout goal achieved!")
+    else:
+        print("⚠️ You need more workouts.")
+
+    if total_calories >= goal_calories:
+        print("✅ Calorie goal achieved!")
+    else:
+        print("⚠️ Burn more calories.")
+
+# Main Menu
+def main_menu():
+    while True:
+        print("\n=== FITNESS TRACKER ===")
+        print("1. View Profile")
+        print("2. Log Workout")
+        print("3. Workout History")
+        print("4. Goals")
+        print("5. Switch Profile")
+        print("6. Exit")
+
+        choice = input("Choice: ")
+
+        if choice == "1":
+            view_profile()
+        elif choice == "2":
+            log_workout()
+        elif choice == "3":
+            view_workouts()
+        elif choice == "4":
+            goals_menu()
+        elif choice == "5":
+            return
+        elif choice == "6":
+            save_data()
+            exit()
+        else:
+            print("Invalid input!")
+
+# Start
+while True:
+    profile_menu()
+    main_menu()
