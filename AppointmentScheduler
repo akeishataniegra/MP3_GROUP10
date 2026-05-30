@@ -1,0 +1,361 @@
+from datetime import datetime, timedelta 
+
+appointments = []
+
+# ========================= 
+
+# ADD APPOINTMENT 
+
+# ========================= 
+
+def add_appointment(): 
+
+
+    description = input("Enter Plan: ") 
+
+    date = input("Enter date (YYYY-MM-DD): ") 
+
+    time = input("Enter time (HH:MM): ") 
+
+    # conflict checking 
+
+    for appointment in appointments: 
+
+        if appointment["date"] == date and appointment["time"] == time: 
+
+            print("Schedule conflict! Appointment already exists.") 
+
+            return 
+    appointment = { 
+
+        "date": date, 
+
+        "time": time, 
+
+        "description": description 
+
+    } 
+    appointments.append(appointment) 
+
+    print("Appointment added successfully.") 
+
+# ========================= 
+
+# VIEW SCHEDULE 
+
+# ========================= 
+
+def view_schedule(): 
+
+    if len(appointments) == 0: 
+
+        print("No appointments found.") 
+
+        return 
+
+    for index, appointment in enumerate(appointments, start=1): 
+
+        print( index,".",appointment["date"]," |",appointment["time"]," |",appointment["description"] ) 
+
+# ========================= 
+
+# CANCEL APPOINTMENT 
+
+# ========================= 
+
+def cancel_appointment(): 
+
+    view_schedule() 
+    if len(appointments) == 0: 
+        return 
+    number = int(input("Enter appointment number to cancel: ")) 
+
+
+    if 1 <= number <= len(appointments): 
+
+        removed = appointments.pop(number - 1) 
+        print("Appointment cancelled:", removed["description"]) 
+    else: 
+
+        print("Invalid appointment number.") 
+# ========================= 
+
+# RESCHEDULE APPOINTMENT 
+
+# ========================= 
+
+def reschedule_appointment(): 
+    view_schedule() 
+    if len(appointments) == 0: 
+        return 
+
+
+    number = int(input("Enter appointment number to reschedule: ")) 
+    if 1 <= number <= len(appointments): 
+        new_date = input("Enter new date (YYYY-MM-DD): ") 
+        new_time = input("Enter new time (HH:MM): ") 
+        # conflict checking 
+
+        for index, appointment in enumerate(appointments): 
+            if ( 
+
+                appointment["date"] == new_date 
+
+                and appointment["time"] == new_time 
+
+                and index != number - 1 
+
+            ): 
+
+                print("Conflict detected! Time already taken.") 
+                return 
+        appointments[number - 1]["date"] = new_date 
+
+        appointments[number - 1]["time"] = new_time 
+
+        print("Appointment rescheduled successfully.") 
+    else: 
+
+        print("Invalid appointment number.") 
+
+# ========================= 
+
+# REMINDERS 
+
+# ========================= 
+
+def set_reminders(): 
+
+    now = datetime.now() 
+    next_day = now + timedelta(days=1) 
+    print("\nUpcoming Appointments (within 24 hours):") 
+
+    found = False 
+
+    for appointment in appointments: 
+        appointment_datetime = datetime.strptime( 
+            appointment["date"] + " " + appointment["time"], 
+            "%Y-%m-%d %H:%M" ) 
+
+        if now <= appointment_datetime <= next_day: 
+
+            print( 
+
+                appointment["date"], 
+
+                appointment["time"], 
+
+                "-", 
+
+                appointment["description"] ) 
+            found = True 
+    if not found: 
+
+        print("No upcoming appointments.") 
+
+
+# ========================= 
+
+# VIEW FREE TIME SLOTS 
+
+# ========================= 
+
+def view_free_slots(): 
+
+
+    date = input("Enter date (YYYY-MM-DD): ") 
+    taken_times = [] 
+    for appointment in appointments: 
+
+        if appointment["date"] == date: 
+            taken_times.append(appointment["time"]) 
+    print("\nFree Time Slots:") 
+    for hour in range(8, 18): 
+
+        slot = f"{hour:02d}:00" 
+        if slot not in taken_times: 
+            print(slot) 
+
+# ========================= 
+
+# VALIDATE DATE AND TIME 
+
+# ========================= 
+
+def validate_date_time(): 
+
+  
+
+    date = input("Enter date (YYYY-MM-DD): ") 
+
+    time = input("Enter time (HH:MM): ") 
+
+  
+
+    try: 
+
+  
+
+        datetime.strptime(date, "%Y-%m-%d") 
+
+        datetime.strptime(time, "%H:%M") 
+
+  
+
+        print("Valid date and time.") 
+
+  
+
+    except ValueError: 
+
+  
+
+        print("Invalid date or time format.") 
+
+  
+
+  
+
+# ========================= 
+
+# GENERATE REPORT 
+
+# ========================= 
+
+def generate_report(): 
+
+  
+
+    print("\n===== SCHEDULE REPORT =====") 
+
+  
+
+    print("Total appointments:", len(appointments)) 
+
+  
+
+    if len(appointments) == 0: 
+
+        return 
+
+  
+
+    for appointment in appointments: 
+
+  
+
+        print( 
+
+            appointment["date"], 
+
+            " |", 
+
+            appointment["time"], 
+
+            " |", 
+
+            appointment["description"] 
+
+        ) 
+
+  
+
+  
+
+# ========================= 
+
+# MENU 
+
+# ========================= 
+
+while True: 
+
+  
+
+    print("\n===== APPOINTMENT SCHEDULER =====") 
+
+    print("1. Add Appointment") 
+
+    print("2. View Schedule") 
+
+    print("3. Cancel Appointment") 
+
+    print("4. Reschedule Appointment") 
+
+    print("5. Set Reminders") 
+
+    print("6. View Free Time Slots") 
+
+    print("7. Validate Date and Time") 
+
+    print("8. Generate Report") 
+
+    print("9. Exit") 
+
+  
+
+    choice = input("Enter choice: ") 
+
+  
+
+    if choice == "1": 
+
+        add_appointment() 
+
+  
+
+    elif choice == "2": 
+
+        view_schedule() 
+
+  
+
+    elif choice == "3": 
+
+        cancel_appointment() 
+
+  
+
+    elif choice == "4": 
+
+        reschedule_appointment() 
+
+  
+
+    elif choice == "5": 
+
+        set_reminders() 
+
+  
+
+    elif choice == "6": 
+
+        view_free_slots() 
+
+  
+
+    elif choice == "7": 
+
+        validate_date_time() 
+
+  
+
+    elif choice == "8": 
+
+        generate_report() 
+
+  
+
+    elif choice == "9": 
+
+        print("Program ended.") 
+
+        break 
+
+  
+
+    else: 
+
+        print("Invalid choice.") 
+
+ 
